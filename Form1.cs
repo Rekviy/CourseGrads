@@ -457,8 +457,7 @@ namespace CourseGrads {
 
         private void btnRawView_Click(object sender, EventArgs e) {
             RawViewForm rawViewForm = new RawViewForm();
-            rawViewForm.ShowDialog();
-            LoadData();
+            rawViewForm.Show();
         }
     }
 }
