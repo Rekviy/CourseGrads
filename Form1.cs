@@ -180,7 +180,7 @@ namespace CourseGrads {
                         isExist = true;
                     break;
                 }
-                if (isExist) {
+                if (!isExist) {
                     using (SqlCommand cmd = new SqlCommand(@"INSERT INTO Groups (GroupName, Speciality) VALUES (@GroupName, @Speciality)",
                                               connection, transaction)) {
                         cmd.Parameters.AddWithValue("@GroupName", row["GroupName"]);
@@ -286,9 +286,9 @@ namespace CourseGrads {
                             insertCmd.Parameters.AddWithValue("@Grade", Convert.ToInt32(grade[count - 1]));
                             insertCmd.ExecuteNonQuery();
                             result[count - 1] = subjectId;
-                            count--;
-                        }
+                        }  
                     }
+                    count--;
                 }
             }
 
