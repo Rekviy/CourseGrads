@@ -11,11 +11,13 @@ using System.Windows.Forms;
 
 namespace CourseGrads {
     public partial class RawViewForm : Form {
-        private DataSet dataSet;
+        DataSet dataSet;
         SqlDataAdapter graduatesAdapter;
         SqlDataAdapter groupsAdapter;
         SqlDataAdapter subjectsAdapter;
         SqlDataAdapter subjectsGraduatesAdapter;
+        string toDelete = null;
+        int toDeleteRow = 0;
 
         public RawViewForm() {
             InitializeComponent();
@@ -68,21 +70,24 @@ namespace CourseGrads {
                     dataSet.Relations.Add(graduateToSubjects);
                 if (!dataSet.Relations.Contains("SubjectToGraduates"))
                     dataSet.Relations.Add(subjectToGraduates);
-                GradTable.DataSource = dataSet.Tables["GraduatesTable"];
+                GraduatesTable.DataSource = dataSet.Tables["GraduatesTable"];
                 Groups.DataSource = dataSet.Tables["Groups"];
                 Subjects.DataSource = dataSet.Tables["Subjects"];
-                SubjectsGraduates.DataSource = dataSet.Tables["SubjectsGraduatesTable"];
+                SubjectsGraduatesTable.DataSource = dataSet.Tables["SubjectsGraduatesTable"];
+                FormatDataGrid(GraduatesTable);
+                FormatDataGrid(Groups);
+                FormatDataGrid(Subjects);
+                FormatDataGrid(SubjectsGraduatesTable);
             }
             catch (Exception ex) {
                 MessageBox.Show($"Ошибка загрузки данных: {ex.Message}", "Ошибка",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-        private void FormatDataGridView(DataGridView dgw) {
+        private void FormatDataGrid(DataGridView dgw) {
             dgw.AutoResizeColumns(DataGridViewAutoSizeColumnsMode.AllCells);
             dgw.AlternatingRowsDefaultCellStyle.BackColor = Color.LightGray;
             dgw.RowHeadersVisible = false;
-            dgw.AllowUserToAddRows = false;
         }
         private void SaveData() {
             try {
@@ -102,8 +107,8 @@ namespace CourseGrads {
                 string deleteQuery;
                 foreach (DataRelation item in row.Table.ChildRelations) {
                     for (int i = item.ChildTable.Columns.Count - 1, j = row.Table.Columns.Count - 1; i > 0 && j > 0; i--) {
-                        if (item.ChildTable.Columns[i].ToString() == row.Table.Columns[j].ToString()) {
-                            primkey = item.ChildTable.Columns[i].ToString();
+                        primkey = item.ChildTable.Columns[i].ToString();
+                        if (primkey == row.Table.Columns[j].ToString()) {
                             deleteQuery = "UPDATE " + item.ChildTable.ToString() + " SET " + primkey + " = NULL WHERE " + primkey + " = @" + primkey;
                             using (SqlCommand cmd = new SqlCommand(deleteQuery, MainWindow.connection)) {
                                 MainWindow.connection.Open();
@@ -132,7 +137,7 @@ namespace CourseGrads {
             finally {
                 MainWindow.connection.Close();
             }
-            
+
         }
         private void btnSave_Click(object sender, EventArgs e) {
             SaveData();
@@ -145,21 +150,23 @@ namespace CourseGrads {
         }
 
         private void RawViewForm_Load(object sender, EventArgs e) {
-            FormatDataGridView(GradTable);
-            FormatDataGridView(Groups);
-            FormatDataGridView(Subjects);
-            FormatDataGridView(SubjectsGraduates);
+            FormatDataGrid(GraduatesTable);
+            FormatDataGrid(Groups);
+            FormatDataGrid(Subjects);
+            FormatDataGrid(SubjectsGraduatesTable);
         }
 
         private void btnDeleteGraduate_Click(object sender, EventArgs e) {
-            if (GradTable.SelectedCells.Count > 0) {
+
+            if (toDelete != null) {
                 DialogResult result = MessageBox.Show(
                     "Вы уверены, что хотите удалить выбранный ряд?",
                     "Подтверждение удаления",
                     MessageBoxButtons.YesNo,
                     MessageBoxIcon.Question);
                 if (result == DialogResult.Yes) {
-                    Delete(dataSet.Tables[0].Rows[GradTable.SelectedCells[0].RowIndex]);
+
+                    Delete(dataSet.Tables[toDelete].Rows[toDeleteRow]);
 
                     MessageBox.Show("ряд успешно удален", "Информация",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -170,6 +177,10 @@ namespace CourseGrads {
             else
                 MessageBox.Show("Выберите ряд для удаления", "Предупреждение",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+        private void dataGrid_CellClick(object sender, DataGridViewCellEventArgs e) {
+            toDelete = ((DataGridView)sender).Name;
+            toDeleteRow = e.RowIndex;
         }
     }
 }

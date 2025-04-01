@@ -23,54 +23,58 @@
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent() {
-            GradTable = new DataGridView();
+            GraduatesTable = new DataGridView();
             Groups = new DataGridView();
-            SubjectsGraduates = new DataGridView();
+            SubjectsGraduatesTable = new DataGridView();
             Subjects = new DataGridView();
             btnSave = new Button();
             btnRefresh = new Button();
             btnDeleteGraduate = new Button();
-            ((System.ComponentModel.ISupportInitialize)GradTable).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)GraduatesTable).BeginInit();
             ((System.ComponentModel.ISupportInitialize)Groups).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)SubjectsGraduates).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)SubjectsGraduatesTable).BeginInit();
             ((System.ComponentModel.ISupportInitialize)Subjects).BeginInit();
             SuspendLayout();
             // 
-            // GradTable
+            // GraduatesTable
             // 
-            GradTable.AllowUserToOrderColumns = true;
-            GradTable.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            GradTable.Location = new Point(12, 12);
-            GradTable.Name = "GradTable";
-            GradTable.Size = new Size(955, 248);
-            GradTable.TabIndex = 1;
+            GraduatesTable.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            GraduatesTable.Location = new Point(12, 12);
+            GraduatesTable.Name = "GraduatesTable";
+            GraduatesTable.ReadOnly = true;
+            GraduatesTable.Size = new Size(955, 248);
+            GraduatesTable.TabIndex = 1;
+            GraduatesTable.CellClick += dataGrid_CellClick;
             // 
             // Groups
             // 
-            Groups.AllowUserToOrderColumns = true;
             Groups.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             Groups.Location = new Point(664, 308);
             Groups.Name = "Groups";
+            Groups.ReadOnly = true;
             Groups.Size = new Size(303, 248);
             Groups.TabIndex = 4;
+            Groups.CellClick += dataGrid_CellClick;
             // 
-            // SubjectsGraduates
+            // SubjectsGraduatesTable
             // 
-            SubjectsGraduates.AllowUserToOrderColumns = true;
-            SubjectsGraduates.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            SubjectsGraduates.Location = new Point(984, 12);
-            SubjectsGraduates.Name = "SubjectsGraduates";
-            SubjectsGraduates.Size = new Size(141, 325);
-            SubjectsGraduates.TabIndex = 5;
+            SubjectsGraduatesTable.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            SubjectsGraduatesTable.Location = new Point(984, 12);
+            SubjectsGraduatesTable.Name = "SubjectsGraduatesTable";
+            SubjectsGraduatesTable.ReadOnly = true;
+            SubjectsGraduatesTable.Size = new Size(141, 325);
+            SubjectsGraduatesTable.TabIndex = 5;
+            SubjectsGraduatesTable.CellClick += dataGrid_CellClick;
             // 
             // Subjects
             // 
-            Subjects.AllowUserToOrderColumns = true;
             Subjects.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             Subjects.Location = new Point(12, 308);
             Subjects.Name = "Subjects";
+            Subjects.ReadOnly = true;
             Subjects.Size = new Size(591, 248);
             Subjects.TabIndex = 6;
+            Subjects.CellClick += dataGrid_CellClick;
             // 
             // btnSave
             // 
@@ -111,24 +115,24 @@
             Controls.Add(btnRefresh);
             Controls.Add(btnSave);
             Controls.Add(Subjects);
-            Controls.Add(SubjectsGraduates);
+            Controls.Add(SubjectsGraduatesTable);
             Controls.Add(Groups);
-            Controls.Add(GradTable);
+            Controls.Add(GraduatesTable);
             Name = "RawViewForm";
             Text = "RawViewForm";
             Load += RawViewForm_Load;
-            ((System.ComponentModel.ISupportInitialize)GradTable).EndInit();
+            ((System.ComponentModel.ISupportInitialize)GraduatesTable).EndInit();
             ((System.ComponentModel.ISupportInitialize)Groups).EndInit();
-            ((System.ComponentModel.ISupportInitialize)SubjectsGraduates).EndInit();
+            ((System.ComponentModel.ISupportInitialize)SubjectsGraduatesTable).EndInit();
             ((System.ComponentModel.ISupportInitialize)Subjects).EndInit();
             ResumeLayout(false);
         }
 
         #endregion
 
-        private DataGridView GradTable;
+        private DataGridView GraduatesTable;
         private DataGridView Groups;
-        private DataGridView SubjectsGraduates;
+        private DataGridView SubjectsGraduatesTable;
         private DataGridView Subjects;
         private Button btnSave;
         private Button btnRefresh;

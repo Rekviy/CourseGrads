@@ -42,7 +42,6 @@
             // 
             // GradTable
             // 
-            GradTable.AllowUserToOrderColumns = true;
             GradTable.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             GradTable.Location = new Point(12, 12);
             GradTable.Name = "GradTable";
