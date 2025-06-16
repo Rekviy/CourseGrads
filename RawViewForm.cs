@@ -1,5 +1,12 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using CourseGrads.Data;
+using CourseGrads.Models;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -7,180 +14,235 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Transactions;
 using System.Windows.Forms;
 
 namespace CourseGrads {
-    public partial class RawViewForm : Form {
-        DataSet dataSet;
-        SqlDataAdapter graduatesAdapter;
-        SqlDataAdapter groupsAdapter;
-        SqlDataAdapter subjectsAdapter;
-        SqlDataAdapter subjectsGraduatesAdapter;
-        string toDelete = null;
-        int toDeleteRow = 0;
+	public partial class RawViewForm : Form {
+		Dictionary<string, dynamic> _trackers = new();
 
-        public RawViewForm() {
-            InitializeComponent();
-            InitializeDatabase();
-            LoadData();
-        }
-        private void InitializeDatabase() {
-            try {
-                graduatesAdapter = new SqlDataAdapter("SELECT * FROM GraduatesTable", MainWindow.connection);
-                groupsAdapter = new SqlDataAdapter("SELECT * FROM Groups", MainWindow.connection);
-                subjectsAdapter = new SqlDataAdapter("SELECT * FROM Subjects", MainWindow.connection);
-                subjectsGraduatesAdapter = new SqlDataAdapter("SELECT * FROM SubjectsGraduatesTable", MainWindow.connection);
+		public RawViewForm() {
+			InitializeComponent();
+		}
+		private void RawViewForm_FormClosing(object sender, FormClosingEventArgs e) {
+			foreach (TabPage page in RawViewTabControl.TabPages) {
+				var grid = page.Controls.OfType<DataGridView>().First();
+				if (grid != null)
+					SaveChanges(page.Text, grid);
+			}
+			MessageBox.Show("Данные успешно сохранены", "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
+		}
+		private void RawViewForm_Load(object sender, EventArgs e) {
+			InitializeGrids();
+			InitializeDatabase();
 
-                SqlCommandBuilder graduatesBuilder = new SqlCommandBuilder(graduatesAdapter);
-                SqlCommandBuilder groupsBuilder = new SqlCommandBuilder(groupsAdapter);
-                SqlCommandBuilder subjectsBuilder = new SqlCommandBuilder(subjectsAdapter);
-                SqlCommandBuilder subjectsGraduatesBuilder = new SqlCommandBuilder(subjectsGraduatesAdapter);
+			foreach (TabPage page in RawViewTabControl.TabPages) {
+				var grid = page.Controls.OfType<DataGridView>().First();
+				if (grid != null) InitData(page.Text, grid);
+			}
+		}
 
-                dataSet = new DataSet();
-            }
-            catch (Exception ex) {
-                MessageBox.Show($"Ошибка инициализации базы данных: {ex.Message}", "Ошибка",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-        private void LoadData() {
-            try {
-                dataSet.Clear();
+		private void FormatDataGrid(DataGridView grid) {
+			grid.AutoResizeColumns(DataGridViewAutoSizeColumnsMode.AllCells);
+			grid.AlternatingRowsDefaultCellStyle.BackColor = Color.LightGray;
+			grid.RowHeadersVisible = false;
+		}
+		private void InitializeGrids() {
+			GraduatesGrid.Tag = typeof(Graduate);
+			GroupsGrid.Tag = typeof(Group);
+			SpecialitiesGrid.Tag = typeof(Speciality);
+			ThesesGrid.Tag = typeof(Thesis);
+			ProfessorsGrid.Tag = typeof(Professor);
+			SubjectsGrid.Tag = typeof(Subject);
+			SubjectsGraduatesGrid.Tag = typeof(SubjectGraduate);
+		}
+		private void InitializeDatabase() {
+			using var context = new UniversityContext();
+			context.Database.Migrate();
+		}
 
-                groupsAdapter.Fill(dataSet, "Groups");
-                graduatesAdapter.Fill(dataSet, "GraduatesTable");
-                subjectsAdapter.Fill(dataSet, "Subjects");
-                subjectsGraduatesAdapter.Fill(dataSet, "SubjectsGraduatesTable");
+		private void InitTab<T>(string key, DataGridView grid, Func<T, object> keySelector) where T : class, INotifyPropertyChanged {
+			var tracker = new ChangeTracker<T>();
 
-                DataRelation graduateToGroup = new DataRelation("GraduateToGroup",
-                    dataSet.Tables["Groups"].Columns["GroupName"],
-                    dataSet.Tables["GraduatesTable"].Columns["GroupName"]);
+			tracker.Initialize(UniversityDBHelper.GetTable<T>(new UniversityContext()), keySelector);
+			_trackers[key] = tracker;
+			grid.DataSource = tracker.List;
+		}
+		private void InitData(string key, DataGridView grid) {
+			Type modelType = (Type)grid.Tag!;
 
-                DataRelation graduateToSubjects = new DataRelation("GraduateToSubjects",
-                    dataSet.Tables["GraduatesTable"].Columns["DipNum"],
-                    dataSet.Tables["SubjectsGraduatesTable"].Columns["DipNum"]);
+			switch (modelType.Name) {
+				case nameof(Graduate):
+					InitTab<Graduate>(key, grid, g => g.DipNum);
+					break;
+				case nameof(Group):
+					InitTab<Group>(key, grid, g => g.GroupId);
+					break;
+				case nameof(Speciality):
+					InitTab<Speciality>(key, grid, s => s.SpecialityId);
+					break;
+				case nameof(Thesis):
+					InitTab<Thesis>(key, grid, t => t.DipNum);
+					break;
+				case nameof(Professor):
+					InitTab<Professor>(key, grid, p => p.ProfessorId);
+					break;
+				case nameof(Subject):
+					InitTab<Subject>(key, grid, s => s.SubjectId);
+					break;
+				case nameof(SubjectGraduate):
+					InitTab<SubjectGraduate>(key, grid, sg => (sg.DipNum, sg.SubjectId));
+					break;
+				default:
+					throw new InvalidOperationException($"Неизвестный тип {modelType.Name}");
+			}
+		}
 
-                DataRelation subjectToGraduates = new DataRelation("SubjectToGraduates",
-                    dataSet.Tables["Subjects"].Columns["SubjectID"],
-                    dataSet.Tables["SubjectsGraduatesTable"].Columns["SubjectID"]);
+		private dynamic LoadData(DataGridView grid) {
+			Type modelType = (Type)grid.Tag!;
 
-                if (!dataSet.Relations.Contains("GraduateToGroup"))
-                    dataSet.Relations.Add(graduateToGroup);
-                if (!dataSet.Relations.Contains("GraduateToSubjects"))
-                    dataSet.Relations.Add(graduateToSubjects);
-                if (!dataSet.Relations.Contains("SubjectToGraduates"))
-                    dataSet.Relations.Add(subjectToGraduates);
-                GraduatesTable.DataSource = dataSet.Tables["GraduatesTable"];
-                Groups.DataSource = dataSet.Tables["Groups"];
-                Subjects.DataSource = dataSet.Tables["Subjects"];
-                SubjectsGraduatesTable.DataSource = dataSet.Tables["SubjectsGraduatesTable"];
-                FormatDataGrid(GraduatesTable);
-                FormatDataGrid(Groups);
-                FormatDataGrid(Subjects);
-                FormatDataGrid(SubjectsGraduatesTable);
-            }
-            catch (Exception ex) {
-                MessageBox.Show($"Ошибка загрузки данных: {ex.Message}", "Ошибка",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-        private void FormatDataGrid(DataGridView dgw) {
-            dgw.AutoResizeColumns(DataGridViewAutoSizeColumnsMode.AllCells);
-            dgw.AlternatingRowsDefaultCellStyle.BackColor = Color.LightGray;
-            dgw.RowHeadersVisible = false;
-        }
-        private void SaveData() {
-            try {
-                graduatesAdapter.Update(dataSet, "GraduatesTable");
-                groupsAdapter.Update(dataSet, "Groups");
-                subjectsAdapter.Update(dataSet, "Subjects");
-                subjectsGraduatesAdapter.Update(dataSet, "SubjectsGraduatesTable");
-            }
-            catch (Exception ex) {
-                MessageBox.Show($"Ошибка сохранения данных: {ex.Message}", "Ошибка",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-        private void Delete(DataRow row) {
-            try {
-                string primkey;
-                string deleteQuery;
-                foreach (DataRelation item in row.Table.ChildRelations) {
-                    for (int i = item.ChildTable.Columns.Count - 1, j = row.Table.Columns.Count - 1; i > 0 && j > 0; i--) {
-                        primkey = item.ChildTable.Columns[i].ToString();
-                        if (primkey == row.Table.Columns[j].ToString()) {
-                            deleteQuery = "UPDATE " + item.ChildTable.ToString() + " SET " + primkey + " = NULL WHERE " + primkey + " = @" + primkey;
-                            using (SqlCommand cmd = new SqlCommand(deleteQuery, MainWindow.connection)) {
-                                MainWindow.connection.Open();
-                                cmd.Parameters.AddWithValue("@" + primkey, row[j]);
-                                cmd.ExecuteNonQuery();
-                            }
-                            j--;
-                        }
-                    }
+			switch (modelType.Name) {
+				case nameof(Graduate):
+					return UniversityDBHelper.GetTable<Graduate>(new UniversityContext());
+				case nameof(Group):
+					return UniversityDBHelper.GetTable<Group>(new UniversityContext());
+				case nameof(Speciality):
+					return UniversityDBHelper.GetTable<Speciality>(new UniversityContext());
+				case nameof(Thesis):
+					return UniversityDBHelper.GetTable<Thesis>(new UniversityContext());
+				case nameof(Professor):
+					return UniversityDBHelper.GetTable<Professor>(new UniversityContext());
+				case nameof(Subject):
+					return UniversityDBHelper.GetTable<Subject>(new UniversityContext());
+				case nameof(SubjectGraduate):
+					return UniversityDBHelper.GetTable<SubjectGraduate>(new UniversityContext());
 
+				default:
+					throw new InvalidOperationException($"Неизвестный тип {modelType.Name}");
+			}
+		}
 
-                }
+		private bool SaveChanges(string key, DataGridView grid) {
+			dynamic tracker = _trackers[key];
+			using var context = new UniversityContext();
+			var transaction = context.Database.BeginTransaction();
+			
+			try {
+				IEntityType entityType = context.Model.FindEntityType(tracker.GetEntityType());
+				var schema = entityType.GetSchema() ?? "dbo";
+				var tableName = entityType.GetTableName();
+				var fullName = $"[{schema}].[{tableName}]";
 
-                primkey = row.Table.Columns[0].ToString();
-                deleteQuery = "DELETE FROM " + row.Table.ToString() + " WHERE " + primkey + " = @" + primkey;
-                using (SqlCommand cmd = new SqlCommand(deleteQuery, MainWindow.connection)) {
-                    MainWindow.connection.Open();
-                    cmd.Parameters.AddWithValue("@" + primkey, row[0]);
-                    cmd.ExecuteNonQuery();
-                }
-            }
-            catch (Exception ex) {
-                MessageBox.Show($"Ошибка удаления ряда: {ex.Message}", "Ошибка",
-                   MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            finally {
-                MainWindow.connection.Close();
-            }
+				context.Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {fullName} ON");
 
-        }
-        private void btnSave_Click(object sender, EventArgs e) {
-            SaveData();
-            MessageBox.Show("Данные успешно сохранены", "Информация",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
+				UniversityDBHelper.AddEntry(tracker.Added, context);
+				UniversityDBHelper.UpdateTable(tracker.Modified, context);
 
-        private void btnRefresh_Click(object sender, EventArgs e) {
-            LoadData();
-        }
+				var deletedKeys = new List<object>();
+				foreach (var item in tracker.Deleted)
+					deletedKeys.Add(tracker.KeyOf(item));
 
-        private void RawViewForm_Load(object sender, EventArgs e) {
-            FormatDataGrid(GraduatesTable);
-            FormatDataGrid(Groups);
-            FormatDataGrid(Subjects);
-            FormatDataGrid(SubjectsGraduatesTable);
-        }
+				UniversityDBHelper.DeleteEntry((Type)grid.Tag!, deletedKeys.ToArray(), context);
 
-        private void btnDeleteGraduate_Click(object sender, EventArgs e) {
+				context.Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {fullName} OFF");
+				transaction.Commit();
+				tracker.ClearChanges();
 
-            if (toDelete != null) {
-                DialogResult result = MessageBox.Show(
-                    "Вы уверены, что хотите удалить выбранный ряд?",
-                    "Подтверждение удаления",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question);
-                if (result == DialogResult.Yes) {
+				return true;
+			}
+			catch (Exception ex) {
+				transaction.Rollback();
+				MessageBox.Show($"Ошибка сохранения данных: {ex.Message}", "Ошибка",
+					MessageBoxButtons.OK, MessageBoxIcon.Error);
+				return false;
+			}
+		}
 
-                    Delete(dataSet.Tables[toDelete].Rows[toDeleteRow]);
+		private bool DeleteRow(string key, DataGridViewRow row) {
+			var itemToDelete = _trackers[key].ConvertTo(row.DataBoundItem);
+			try {
+				var result = MessageBox.Show(
+				$"Удалить запись: {_trackers[key].KeyOf(itemToDelete)}?",
+				"Подтверждение удаления",
+				MessageBoxButtons.YesNo,
+				MessageBoxIcon.Question);
 
-                    MessageBox.Show("ряд успешно удален", "Информация",
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+				if (result == DialogResult.Yes) {
+					_trackers[key].HandleRowDeleting(itemToDelete);
+					return true;
+				}
+			}
 
-                    LoadData();
-                }
-            }
-            else
-                MessageBox.Show("Выберите ряд для удаления", "Предупреждение",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-        }
-        private void dataGrid_CellClick(object sender, DataGridViewCellEventArgs e) {
-            toDelete = ((DataGridView)sender).Name;
-            toDeleteRow = e.RowIndex;
-        }
-    }
+			catch (Exception ex) {
+				MessageBox.Show($"Ошибка удаления ряда: {ex.Message}", "Ошибка",
+					MessageBoxButtons.OK, MessageBoxIcon.Error);
+			}
+			return false;
+		}
+
+		private void Grid_UserDeletingRow(object sender, DataGridViewRowCancelEventArgs e) {
+			var tab = RawViewTabControl.SelectedTab;
+			if (tab != null) {
+
+				if (!DeleteRow(tab.Text, e.Row)) {
+					e.Cancel = true;
+					return;
+				}
+			}
+		}
+
+		private void btnSave_Click(object sender, EventArgs e) {
+			var tab = RawViewTabControl.SelectedTab;
+			if (tab != null) {
+				var grid = tab.Controls.OfType<DataGridView>().First();
+				if (grid != null)
+					if (SaveChanges(tab.Text, grid))
+						MessageBox.Show("Данные успешно сохранены", "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			}
+		}
+
+		private void btnRefresh_Click(object sender, EventArgs e) {
+			var tab = RawViewTabControl.SelectedTab;
+			if (tab != null) {
+				var grid = tab.Controls.OfType<DataGridView>().FirstOrDefault();
+				if (grid != null) {
+					var tracker = _trackers[tab.Text];
+					tracker.Initialize(tracker.Merge(LoadData(grid)), tracker.KeyOf);
+					_trackers[tab.Text] = tracker;
+					grid.DataSource = tracker.List;
+				}
+			}
+		}
+
+		private void btnDeleteGraduate_Click(object sender, EventArgs e) {
+			var tab = RawViewTabControl.SelectedTab;
+			if (tab != null) {
+				var grid = tab.Controls.OfType<DataGridView>().FirstOrDefault();
+
+				if (grid != null && grid.SelectedCells.Count > 0) {
+					var row = grid.SelectedCells[0].OwningRow;
+					if (row != null) {
+						DeleteRow(tab.Text, row);
+						grid.Rows.Remove(row);
+					}
+				}
+				else
+					MessageBox.Show("Выберите ряд для удаления", "Предупреждение",
+						MessageBoxButtons.OK, MessageBoxIcon.Warning);
+			}
+		}
+
+		private void btnCancel_Click(object sender, EventArgs e) {
+			var tab = RawViewTabControl.SelectedTab;
+			if (tab != null) {
+				var tracker = _trackers[tab.Text];
+				tracker.ClearChanges();
+				var grid = tab.Controls.OfType<DataGridView>().First();
+				if (grid != null) {
+					tracker.Initialize(LoadData(grid), tracker.KeyOf);
+					_trackers[tab.Text] = tracker;
+				}
+			}
+		}
+	}
 }
