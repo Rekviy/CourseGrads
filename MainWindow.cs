@@ -38,12 +38,10 @@ namespace CourseGrads {
 
 		private void InitializeDatabase() {
 			using var context = new UniversityContext();
-			if (!context.Database.CanConnect()) {
-				context.Database.Migrate();
-			}
+			context.Database.Migrate();
 		}
 		private void LoadData() {
-			_tracker.Initialize(UniversityDBHelper.GetTable(new UniversityContext()), (entity) => { return entity.DipNum; });
+			_tracker.Initialize(UniversityDBHelper.GetTable(new UniversityContext()), (entity) => { return new object[] { entity.DipNum };  });
 			GradTable.DataSource = _tracker.List;
 			FormatDataGridView();
 		}
@@ -104,7 +102,7 @@ namespace CourseGrads {
 
 		private void btnRefresh_Click(object sender, EventArgs e) {
 			_tracker.Initialize(_tracker.Merge(UniversityDBHelper.GetTable(new UniversityContext())), _tracker.KeyOf);
-			GradTable.DataSource = _tracker.List;
+			GradTable.DataSource =_tracker.List;
 		}
 		private void btnSave_Click(object sender, EventArgs e) {
 			SaveChanges();
@@ -206,7 +204,8 @@ namespace CourseGrads {
 
 		private void btnGraduatesSpecCount_Click(object sender, EventArgs e) {
 			try {
-				GradTable.DataSource = _tracker.Merge(UniversityDBHelper.GetTable(new UniversityContext()))
+				GradTable.DataSource =
+					_tracker.Merge(UniversityDBHelper.GetTable(new UniversityContext()))
 					.GroupBy(g => g.SpecialityName)
 					.Select(gr => new {
 						Speciality = gr.Key,

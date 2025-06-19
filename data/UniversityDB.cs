@@ -6,10 +6,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using CourseGrads.Models;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 
 namespace CourseGrads.Data {
-	
+
 
 	public class UniversityContext : DbContext {
 		public DbSet<Graduate> Graduates { get; set; }
@@ -33,17 +34,28 @@ namespace CourseGrads.Data {
 				.HasForeignKey(gr => gr.GroupId)
 				.OnDelete(DeleteBehavior.Cascade);
 
-			modelBuilder.Entity<Graduate>()
-				.HasOne(g => g.Thesis)
+			modelBuilder.Entity<Graduate>(b=> {
+				b.HasOne(g => g.Thesis)
 				.WithOne(t => t.Graduate)
 				.HasForeignKey<Thesis>(t => t.DipNum)
 				.OnDelete(DeleteBehavior.Cascade);
 
-			modelBuilder.Entity<Graduate>()
-				.HasMany(g => g.SubjectsGraduates)
+				b.HasMany(g => g.SubjectsGraduates)
 				.WithOne(sg => sg.Graduate)
 				.HasForeignKey(sg => sg.DipNum)
 				.OnDelete(DeleteBehavior.Cascade);
+			});				
+
+			modelBuilder.Entity<Thesis>(b =>
+			{
+				b.HasKey(t => t.DipNum);
+				b.Property(t => t.DipNum)
+				 .ValueGeneratedNever();
+
+				b.HasOne(t => t.Graduate)
+				 .WithOne(g => g.Thesis)
+				 .HasForeignKey<Thesis>(t => t.DipNum);
+			});
 
 			modelBuilder.Entity<Professor>()
 				.HasMany(p => p.Subjects)
@@ -57,8 +69,15 @@ namespace CourseGrads.Data {
 			   .HasForeignKey(sg => sg.SubjectId)
 			   .OnDelete(DeleteBehavior.Cascade);
 
-			modelBuilder.Entity<SubjectGraduate>()
-				.HasKey(sg => new { sg.DipNum, sg.SubjectId });
+			modelBuilder.Entity<SubjectGraduate>(b => {
+				b.HasKey(sg => new { sg.DipNum, sg.SubjectId });
+
+				b.Property(sg => sg.DipNum)
+					.ValueGeneratedNever();
+
+				b.Property(sg => sg.SubjectId)
+					.ValueGeneratedNever();
+			});
 		}
 
 		protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) {

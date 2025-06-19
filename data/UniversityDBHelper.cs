@@ -52,7 +52,7 @@ namespace CourseGrads.Data {
 			return result;
 		}
 
-		public static void DeleteEntry(Type entityType, object[] keys, DbContext context) {
+		public static void DeleteEntry(Type entityType, object[][] keys, DbContext context) {
 			foreach (var key in keys) {
 				var entity = context.Find(entityType, key);
 				if (entity != null)

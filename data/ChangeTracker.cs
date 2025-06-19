@@ -14,9 +14,9 @@ namespace CourseGrads.Data {
 		private HashSet<T> Pending_Added { get; } = new();
 		public HashSet<T> Modified { get; } = new();
 		public HashSet<T> Deleted { get; } = new();
-		public Func<T, object> KeyOf { get; private set; }
+		public Func<T, object[]> KeyOf { get; private set; }
 
-		public void Initialize(IEnumerable<T> initialItems, Func<T, object> keySelector) {
+		public void Initialize(IEnumerable<T> initialItems, Func<T, object[]> keySelector) {
 			UnsubscribeAll();
 			List = new BindingList<T>(initialItems.ToList());
 			foreach (var item in List.ToList()) {

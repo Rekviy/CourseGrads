@@ -61,7 +61,7 @@ namespace CourseGrads {
 			context.Database.Migrate();
 		}
 
-		private void InitTab<T>(string key, DataGridView grid, Func<T, object> keySelector) where T : class, INotifyPropertyChanged {
+		private void InitTab<T>(string key, DataGridView grid, Func<T, object[]> keySelector) where T : class, INotifyPropertyChanged {
 			var tracker = new ChangeTracker<T>();
 
 			tracker.Initialize(UniversityDBHelper.GetTable<T>(new UniversityContext()), keySelector);
@@ -73,25 +73,25 @@ namespace CourseGrads {
 
 			switch (modelType.Name) {
 				case nameof(Graduate):
-					InitTab<Graduate>(key, grid, g => g.DipNum);
+					InitTab<Graduate>(key, grid, g => new object[] { g.DipNum });
 					break;
 				case nameof(Group):
-					InitTab<Group>(key, grid, g => g.GroupId);
+					InitTab<Group>(key, grid, g => new object[] { g.GroupId });
 					break;
 				case nameof(Speciality):
-					InitTab<Speciality>(key, grid, s => s.SpecialityId);
+					InitTab<Speciality>(key, grid, s => new object[] { s.SpecialityId });
 					break;
 				case nameof(Thesis):
-					InitTab<Thesis>(key, grid, t => t.DipNum);
+					InitTab<Thesis>(key, grid, t => new object[] { t.DipNum });
 					break;
 				case nameof(Professor):
-					InitTab<Professor>(key, grid, p => p.ProfessorId);
+					InitTab<Professor>(key, grid, p => new object[] { p.ProfessorId });
 					break;
 				case nameof(Subject):
-					InitTab<Subject>(key, grid, s => s.SubjectId);
+					InitTab<Subject>(key, grid, s => new object[] { s.SubjectId });
 					break;
 				case nameof(SubjectGraduate):
-					InitTab<SubjectGraduate>(key, grid, sg => (sg.DipNum, sg.SubjectId));
+					InitTab<SubjectGraduate>(key, grid, sg => new object[] { sg.DipNum, sg.SubjectId });
 					break;
 				default:
 					throw new InvalidOperationException($"Неизвестный тип {modelType.Name}");
@@ -126,25 +126,32 @@ namespace CourseGrads {
 			dynamic tracker = _trackers[key];
 			using var context = new UniversityContext();
 			var transaction = context.Database.BeginTransaction();
-			
+
 			try {
 				IEntityType entityType = context.Model.FindEntityType(tracker.GetEntityType());
-				var schema = entityType.GetSchema() ?? "dbo";
-				var tableName = entityType.GetTableName();
-				var fullName = $"[{schema}].[{tableName}]";
+				if (entityType.FindPrimaryKey()!.Properties.Any(p => p.ValueGenerated == ValueGenerated.OnAdd)) {
 
-				context.Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {fullName} ON");
+					var schema = entityType.GetSchema() ?? "dbo";
+					var tableName = entityType.GetTableName();
+					var fullName = $"[{schema}].[{tableName}]";
 
-				UniversityDBHelper.AddEntry(tracker.Added, context);
-				UniversityDBHelper.UpdateTable(tracker.Modified, context);
+					context.Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {fullName} ON");
+					UniversityDBHelper.AddEntry(tracker.Added, context);
+					UniversityDBHelper.UpdateTable(tracker.Modified, context);
+					context.Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {fullName} OFF");
+				}
+				else {
+					UniversityDBHelper.AddEntry(tracker.Added, context);
+					UniversityDBHelper.UpdateTable(tracker.Modified, context);
+				}
 
-				var deletedKeys = new List<object>();
+				var deletedKeys = new List<object[]>();
 				foreach (var item in tracker.Deleted)
 					deletedKeys.Add(tracker.KeyOf(item));
 
 				UniversityDBHelper.DeleteEntry((Type)grid.Tag!, deletedKeys.ToArray(), context);
 
-				context.Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {fullName} OFF");
+
 				transaction.Commit();
 				tracker.ClearChanges();
 
