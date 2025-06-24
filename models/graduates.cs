@@ -14,6 +14,8 @@ namespace CourseGrads.Models {
 	public class Speciality : INotifyPropertyChanged {
 		private int _specialityId;
 		private string? _specialityName;
+
+		[Browsable(false)]
 		public virtual ObservableCollectionListSource<Group> Groups { get; } = new();
 
 		public Speciality() {
@@ -40,6 +42,8 @@ namespace CourseGrads.Models {
 		private int _groupId;
 		private string? _groupName;
 		private int _specialityId;
+
+		[Browsable(false)]
 		public virtual Speciality? Speciality { get; set; }
 
 		public virtual ObservableCollectionListSource<Graduate> Graduates { get; } = new();
@@ -77,13 +81,16 @@ namespace CourseGrads.Models {
 		private string? _address;
 		private int? _groupId;
 
+		[Browsable(false)]
 		public virtual Group? Group { get; set; }
 
 		private DateTime _enrollmentYear;
 		private DateTime _graduationYear;
 
+		[Browsable(false)]
 		public virtual Thesis? Thesis { get; set; }
 
+		[Browsable(false)]
 		public virtual ObservableCollectionListSource<SubjectGraduate> SubjectsGraduates { get; } = new();
 
 		[Key]
@@ -130,6 +137,8 @@ namespace CourseGrads.Models {
 		private int _dipNum;
 		private string? _diplomaQualification { get; set; }
 		private string? _graduationSubject { get; set; }
+
+		[Browsable(false)]
 		public virtual Graduate? Graduate { get; set; } = null;
 
 		[Key]
@@ -156,6 +165,7 @@ namespace CourseGrads.Models {
 		private int _professorId;
 		private string? _fullName;
 
+		[Browsable(false)]
 		public virtual ObservableCollectionListSource<Subject> Subjects { get; } = new();
 
 		[Key]
@@ -182,8 +192,11 @@ namespace CourseGrads.Models {
 		private int _subjectId;
 		private string? _subjectName;
 		private int _professorId;
+
+		[Browsable(false)]
 		public virtual Professor? Professor { get; set; }
 
+		[Browsable(false)]
 		public virtual ObservableCollectionListSource<SubjectGraduate>? SubjectsGraduates { get; } = new();
 
 		[Key]
@@ -215,7 +228,10 @@ namespace CourseGrads.Models {
 		private int _subjectId;
 		public byte _grade;
 
-		public virtual Subject? Subject { get; set; } 
+		[Browsable(false)]
+		public virtual Subject? Subject { get; set; }
+
+		[Browsable(false)]
 		public virtual Graduate? Graduate { get; set; } 
 
 		public int DipNum {
