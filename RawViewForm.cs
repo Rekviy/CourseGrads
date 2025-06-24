@@ -25,12 +25,14 @@ namespace CourseGrads {
 			InitializeComponent();
 		}
 		private void RawViewForm_FormClosing(object sender, FormClosingEventArgs e) {
-			foreach (TabPage page in RawViewTabControl.TabPages) {
+			/*
+			 * foreach (TabPage page in RawViewTabControl.TabPages) {
 				var grid = page.Controls.OfType<DataGridView>().First();
 				if (grid != null)
 					SaveChanges(page.Text, grid);
 			}
 			MessageBox.Show("Данные успешно сохранены", "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			*/
 		}
 		private void RawViewForm_Load(object sender, EventArgs e) {
 			InitializeGrids();

@@ -23,7 +23,7 @@ namespace CourseGrads {
 			InitializeComponent();
 		}
 		private void MainWindow_FormClosing(object sender, FormClosingEventArgs e) {
-			SaveChanges();
+			//SaveChanges();
 		}
 		private void MainWindow_Load(object sender, EventArgs e) {
 			try {
@@ -31,14 +31,16 @@ namespace CourseGrads {
 				LoadData();
 			}
 			catch (Exception ex) {
-
-				MessageBox.Show(ex.ToString());
+				MessageBox.Show("Не удалось подключиться к Базе Данных.\n"+ ex.ToString(), "Ошибка",
+					MessageBoxButtons.OK, MessageBoxIcon.Error);
 			}
 		}
 
 		private void InitializeDatabase() {
 			using var context = new UniversityContext();
-			context.Database.Migrate();
+			
+			if (context.Database.CanConnect())
+				context.Database.Migrate();				
 		}
 		private void LoadData() {
 			_tracker.Initialize(UniversityDBHelper.GetTable(new UniversityContext()), (entity) => { return new object[] { entity.DipNum };  });
