@@ -39,7 +39,7 @@ namespace CourseGrads {
 		private void InitializeDatabase() {
 			using var context = new UniversityContext();
 			
-			if (context.Database.CanConnect())
+			if (!context.Database.CanConnect())
 				context.Database.Migrate();				
 		}
 		private void LoadData() {
@@ -219,7 +219,5 @@ namespace CourseGrads {
 					MessageBoxButtons.OK, MessageBoxIcon.Error);
 			}
 		}
-
-
 	}
 }

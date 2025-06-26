@@ -7,7 +7,6 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace CourseGrads.Data {
-
 	public class ChangeTracker<T> where T : INotifyPropertyChanged {
 		public BindingList<T> List { get; private set; }
 		public HashSet<T> Added { get; } = new();
@@ -95,6 +94,5 @@ namespace CourseGrads.Data {
 			var item = (T)sender;
 			if (!Added.Contains(item)||!Pending_Added.Contains(item)) Modified.Add(item);
 		}
-
 	}
 }

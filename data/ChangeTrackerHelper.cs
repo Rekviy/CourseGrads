@@ -65,8 +65,6 @@ namespace CourseGrads.Data {
 		public static bool IsDefaultValue(object value) {
 			if (value == null) return true;
 
-			if (value == null) return true;
-
 			switch (value) {
 				case int i:
 					return i == 0;

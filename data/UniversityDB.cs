@@ -10,8 +10,6 @@ using Microsoft.EntityFrameworkCore.Metadata;
 
 
 namespace CourseGrads.Data {
-
-
 	public class UniversityContext : DbContext {
 		public DbSet<Graduate> Graduates { get; set; }
 		public DbSet<Group> Groups { get; set; }
